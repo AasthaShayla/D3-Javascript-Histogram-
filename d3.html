@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://d3js.org/d3.v2.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <style>
+    body {
+      font: 10px sans-serif;
+    }
+
+    rect {
+      fill: steelblue;
+      stroke: white;
+    }
+
+    line {
+      stroke: black;
+      shape-rendering: crispEdges;
+    }
+  </style>
+</head>
+<body>
+  <div class="histogram" style="width: 50%;"></div>
+
+  <script>
+    // Generate an Irwin-Hall distribution.
+    function gen_ih_dist(trials, variables) {
+      var data = [];
+
+      for (var i = 0; i < trials; i++) {
+        var sum = 0;
+        for (var j = 0; j < variables; j++) {
+          sum += Math.random();
+        }
+        data.push(sum);
+      }
+
+      return data;
+    }
+
+    var div_name = ".histogram";
+    var pos_data = gen_ih_dist(1000, 10);
+    var neg_data = gen_ih_dist(1000, 10);
+
+    draw_histogram(div_name, pos_data, neg_data);
+
+    function draw_histogram(reference, pos_data, neg_data) {
+      $(reference).empty();
+
+      var width = $(reference).width();
+      var height = 250;
+
+      var histogram = d3.layout.histogram()(pos_data);
+      var neg_histogram = d3.layout.histogram()(neg_data);
+
+      var x = d3.scale.ordinal()
+        .domain(histogram.map(function(d) { return d.x; }))
+        .rangeRoundBands([0, width]);
+
+      var y = d3.scale.linear()
+        .domain([0, d3.max(histogram, function(d) { return d.y; })])
+        .range([height, 0]);
+
+      var ny = d3.scale.linear()
+        .domain([0, d3.max(neg_histogram, function(d) { return d.y; })])
+        .range([height, 0]);
+
+      var svg = d3.select(reference).append("svg")
+        .attr("width", width)
+        .attr("height", height * 2);
+
+      svg.selectAll("rect")
+        .data(histogram)
+        .enter().append("rect")
+        .attr("width", x.rangeBand())
+        .attr("x", function(d) { return x(d.x); })
+        .attr("y", function(d) { return y(d.y); })
+        .attr("height", function(d) { return height - y(d.y); });
+
+      svg.selectAll("rect.neg")
+        .data(neg_histogram)
+        .enter().append("rect")
+        .style("fill", "red")
+        .attr("width", x.rangeBand())
+        .attr("x", function(d) { return x(d.x); })
+        .attr("y", function(d) { return y(d.y); })
+        .attr("height", function(d) { return height - y(d.y); });
+
+      svg.append("line")
+        .attr("x1", 0)
+        .attr("x2", width)
+        .attr("y1", height)
+        .attr("y2", height);
+    }
+
+    var debounce = function(fn, timeout) {
+      var timeoutID = -1;
+      return function() {
+       
+      if (timeoutID > -1) {
+        window.clearTimeout(timeoutID);
+        }
+        timeoutID = window.setTimeout(fn, timeout);
+        };
+        };
+
+        var debounced_draw = debounce(function() {
+          draw_histogram(div_name, pos_data, neg_data);
+        }, 125);
+
+        $(window).resize(debounced_draw);
+
+        // Call the initial draw_histogram function
+        draw_histogram(div_name, pos_data, neg_data);
+
+
+        </script>
+</body>
+</html>
